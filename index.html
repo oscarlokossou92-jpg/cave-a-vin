@@ -192,6 +192,7 @@
   }
   .wine-card:hover{transform:translateY(-6px);border-color:var(--gold);background:rgba(198,161,91,0.08);}
   .wine-card .bottle-icon{width:56px;height:110px;margin-bottom:18px;}
+  .wine-card .wine-photo{width:100%;height:150px;object-fit:cover;border-radius:3px;margin-bottom:18px;border:1px solid var(--divider);}
   .wine-card h3{color:var(--parchment);font-size:1.25rem;font-weight:600;margin-bottom:6px;}
   .wine-card .type{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:14px;}
   .wine-card p.note{color:var(--text-muted);font-size:0.92rem;line-height:1.55;flex:1;margin-bottom:18px;}
@@ -453,6 +454,11 @@
           <input id="newPrice" type="number" placeholder="Prix (FCFA)" class="admin-input">
           <input id="newStock" type="number" placeholder="Stock" class="admin-input">
           <input id="newNote" placeholder="Description courte" class="admin-input" style="grid-column:1/-1;">
+          <div style="grid-column:1/-1;">
+            <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">Photo de la bouteille</label>
+            <input id="newPhoto" type="file" accept="image/*" class="admin-input" style="width:100%;">
+            <div id="newPhotoPreview" style="margin-top:10px;"></div>
+          </div>
         </div>
         <button id="addWineBtn" class="btn btn-gold" style="margin-top:18px;">Ajouter au catalogue</button>
       </div>
@@ -602,11 +608,36 @@
     return n.toLocaleString('fr-FR').replace(/\u202F|,/g, ' ') + " FCFA";
   }
 
+  // Configuration Cloudinary — ⚠️ à remplacer par vos identifiants
+  const CLOUDINARY_CLOUD_NAME = "dyekcsoax";
+  const CLOUDINARY_UPLOAD_PRESET = "bssd_academy";
+
+  async function uploadToCloudinary(file){
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    formData.append("folder", "bssd_cave_a_vin");
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: "POST",
+      body: formData
+    });
+    if(!res.ok) throw new Error("Échec du téléversement Cloudinary");
+    const data = await res.json();
+    return data.secure_url;
+  }
+
   function bottleSVG(color){
     return `<svg class="bottle-icon" viewBox="0 0 60 120" xmlns="http://www.w3.org/2000/svg">
       <path d="M24 4h12v18c0 5 6 7 6 15v65c0 9-7 16-16 16h-2c-9 0-16-7-16-16V37c0-8 6-10 6-15z" fill="${color}" stroke="#C6A15B" stroke-width="1.2"/>
       <rect x="16" y="60" width="28" height="22" fill="#F1E7D0" opacity="0.9"/>
     </svg>`;
+  }
+
+  function wineVisual(w){
+    if(w.image){
+      return `<img src="${w.image}" alt="${w.name}" class="wine-photo">`;
+    }
+    return bottleSVG(w.color || '#8C2436');
   }
 
   function renderStore(wines){
@@ -632,7 +663,7 @@
       const card = document.createElement('div');
       card.className = "wine-card reveal is-visible" + (stock === 0 ? " unavailable" : "");
       card.innerHTML = `
-        ${bottleSVG(w.color || '#8C2436')}
+        ${wineVisual(w)}
         ${badge}
         <div class="type">${w.type}</div>
         <h3>${w.name}</h3>
@@ -655,13 +686,23 @@
     wines.forEach(w => {
       const row = document.createElement('div');
       row.className = "admin-row";
+      const thumb = w.image
+        ? `<img src="${w.image}" style="width:44px;height:60px;object-fit:cover;border-radius:2px;border:1px solid var(--divider);">`
+        : `<div style="width:44px;height:60px;border-radius:2px;border:1px dashed var(--divider);display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--text-muted);text-align:center;">Pas de photo</div>`;
       row.innerHTML = `
-        <div><b style="color:var(--parchment);">${w.name}</b><br><span style="color:var(--text-muted);font-size:0.8rem;">${w.type}</span></div>
+        <div style="display:flex;gap:12px;align-items:center;">
+          ${thumb}
+          <div><b style="color:var(--parchment);">${w.name}</b><br><span style="color:var(--text-muted);font-size:0.8rem;">${w.type}</span></div>
+        </div>
         <div style="color:var(--text-muted);">${formatFCFA(Number(w.price)||0)}</div>
         <div style="color:var(--text-muted);">Stock :</div>
         <input type="number" class="stock-input" value="${w.stock}" min="0" data-id="${w.id}">
         <button class="save-stock" data-id="${w.id}">Enregistrer</button>
         <button class="danger delete-wine" data-id="${w.id}">Supprimer</button>
+        <label class="change-photo-label" style="grid-column:1/-1;font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:10px;margin-top:6px;">
+          Changer la photo :
+          <input type="file" accept="image/*" class="change-photo-input" data-id="${w.id}" style="max-width:220px;">
+        </label>
       `;
       list.appendChild(row);
     });
@@ -693,7 +734,37 @@
         }
       });
     });
+
+    list.querySelectorAll('.change-photo-input').forEach(input => {
+      input.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const id = input.dataset.id;
+        const label = input.closest('.change-photo-label');
+        const originalText = label.firstChild.textContent;
+        label.firstChild.textContent = "Envoi en cours... ";
+        try{
+          const imageUrl = await uploadToCloudinary(file);
+          await updateDoc(doc(db, "bssd_cave_a_vin_wines", id), { image: imageUrl });
+        }catch(err){
+          alert("Erreur lors du téléversement. Vérifiez la configuration Cloudinary.");
+          console.error(err);
+        }finally{
+          label.firstChild.textContent = originalText;
+        }
+      });
+    });
   }
+
+  document.getElementById('newPhoto').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const preview = document.getElementById('newPhotoPreview');
+    if(file){
+      preview.innerHTML = `<img src="${URL.createObjectURL(file)}" style="width:80px;height:110px;object-fit:cover;border-radius:3px;border:1px solid var(--divider);">`;
+    }else{
+      preview.innerHTML = "";
+    }
+  });
 
   document.getElementById('addWineBtn').addEventListener('click', async () => {
     const name = document.getElementById('newName').value.trim();
@@ -701,18 +772,36 @@
     const price = parseInt(document.getElementById('newPrice').value) || 0;
     const stock = Math.max(0, parseInt(document.getElementById('newStock').value) || 0);
     const note = document.getElementById('newNote').value.trim() || "";
+    const photoFile = document.getElementById('newPhoto').files[0];
     if(!name){ alert("Merci d'indiquer le nom du vin."); return; }
+
+    const addBtn = document.getElementById('addWineBtn');
+    const originalLabel = addBtn.textContent;
+    addBtn.disabled = true;
 
     const palette = ['#8C2436','#D9C878','#C87E8E','#6B1626','#E3C777'];
     try{
-      await addDoc(winesCol, {
+      let imageUrl = null;
+      if(photoFile){
+        addBtn.textContent = "Envoi de la photo...";
+        imageUrl = await uploadToCloudinary(photoFile);
+      }
+      addBtn.textContent = "Ajout en cours...";
+      const wineData = {
         name, type, price, note, stock,
         color: palette[currentWines.length % palette.length]
-      });
+      };
+      if(imageUrl) wineData.image = imageUrl;
+      await addDoc(winesCol, wineData);
       ['newName','newType','newPrice','newStock','newNote'].forEach(id => document.getElementById(id).value = "");
+      document.getElementById('newPhoto').value = "";
+      document.getElementById('newPhotoPreview').innerHTML = "";
     }catch(e){
-      alert("Erreur lors de l'ajout. Vérifiez la configuration Firebase.");
+      alert("Erreur lors de l'ajout. Vérifiez la configuration Firebase/Cloudinary.");
       console.error(e);
+    }finally{
+      addBtn.disabled = false;
+      addBtn.textContent = originalLabel;
     }
   });
 
