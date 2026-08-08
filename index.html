@@ -752,9 +752,9 @@
         }catch(err){
           console.error(err);
           if(String(err.message).startsWith("cloudinary:")){
-            alert("Erreur lors de l'envoi de la photo sur Cloudinary. Vérifiez que le preset '" + CLOUDINARY_UPLOAD_PRESET + "' existe bien et est en mode Unsigned.");
+            alert("Erreur Cloudinary (preset '" + CLOUDINARY_UPLOAD_PRESET + "') :\n\n" + err.message.replace("cloudinary:", ""));
           }else{
-            alert("Erreur lors de la mise à jour dans Firebase.");
+            alert("Erreur Firebase :\n\n" + err.message);
           }
         }finally{
           label.firstChild.textContent = originalText;
@@ -806,9 +806,9 @@
     }catch(e){
       console.error(e);
       if(String(e.message).startsWith("cloudinary:")){
-        alert("Erreur lors de l'envoi de la photo sur Cloudinary. Vérifiez que le preset '" + CLOUDINARY_UPLOAD_PRESET + "' existe bien et est en mode Unsigned.");
+        alert("Erreur Cloudinary (preset '" + CLOUDINARY_UPLOAD_PRESET + "') :\n\n" + e.message.replace("cloudinary:", ""));
       }else{
-        alert("Erreur lors de l'ajout dans Firebase. Vérifiez que vous êtes bien connecté et que les règles Firestore autorisent l'écriture.");
+        alert("Erreur Firebase :\n\n" + e.message);
       }
     }finally{
       addBtn.disabled = false;
