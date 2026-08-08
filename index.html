@@ -616,12 +616,15 @@
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-    formData.append("folder", "bssd_cave_a_vin");
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: "POST",
       body: formData
     });
-    if(!res.ok) throw new Error("Échec du téléversement Cloudinary");
+    if(!res.ok){
+      const errBody = await res.text();
+      console.error("Réponse Cloudinary :", res.status, errBody);
+      throw new Error("cloudinary:" + errBody);
+    }
     const data = await res.json();
     return data.secure_url;
   }
@@ -747,8 +750,12 @@
           const imageUrl = await uploadToCloudinary(file);
           await updateDoc(doc(db, "bssd_cave_a_vin_wines", id), { image: imageUrl });
         }catch(err){
-          alert("Erreur lors du téléversement. Vérifiez la configuration Cloudinary.");
           console.error(err);
+          if(String(err.message).startsWith("cloudinary:")){
+            alert("Erreur lors de l'envoi de la photo sur Cloudinary. Vérifiez que le preset '" + CLOUDINARY_UPLOAD_PRESET + "' existe bien et est en mode Unsigned.");
+          }else{
+            alert("Erreur lors de la mise à jour dans Firebase.");
+          }
         }finally{
           label.firstChild.textContent = originalText;
         }
@@ -797,8 +804,12 @@
       document.getElementById('newPhoto').value = "";
       document.getElementById('newPhotoPreview').innerHTML = "";
     }catch(e){
-      alert("Erreur lors de l'ajout. Vérifiez la configuration Firebase/Cloudinary.");
       console.error(e);
+      if(String(e.message).startsWith("cloudinary:")){
+        alert("Erreur lors de l'envoi de la photo sur Cloudinary. Vérifiez que le preset '" + CLOUDINARY_UPLOAD_PRESET + "' existe bien et est en mode Unsigned.");
+      }else{
+        alert("Erreur lors de l'ajout dans Firebase. Vérifiez que vous êtes bien connecté et que les règles Firestore autorisent l'écriture.");
+      }
     }finally{
       addBtn.disabled = false;
       addBtn.textContent = originalLabel;
