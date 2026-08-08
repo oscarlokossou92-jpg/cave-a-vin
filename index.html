@@ -447,18 +447,19 @@
       </div>
 
       <div style="background:rgba(198,161,91,0.05);border:1px solid var(--divider);border-radius:4px;padding:26px;margin-bottom:36px;">
-        <h3 style="color:var(--parchment);font-size:1.05rem;margin-bottom:18px;">Ajouter une bouteille</h3>
+        <h3 style="color:var(--parchment);font-size:1.05rem;margin-bottom:4px;">Ajouter une bouteille</h3>
+        <p style="color:var(--gold-bright);font-size:0.7rem;letter-spacing:0.05em;margin-bottom:18px;">VERSION AVEC PHOTO — v2</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;">
           <input id="newName" placeholder="Nom du vin" class="admin-input">
           <input id="newType" placeholder="Type (ex: Vin rouge)" class="admin-input">
           <input id="newPrice" type="number" placeholder="Prix (FCFA)" class="admin-input">
           <input id="newStock" type="number" placeholder="Stock" class="admin-input">
           <input id="newNote" placeholder="Description courte" class="admin-input" style="grid-column:1/-1;">
-          <div style="grid-column:1/-1;">
-            <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">Photo de la bouteille</label>
-            <input id="newPhoto" type="file" accept="image/*" class="admin-input" style="width:100%;">
-            <div id="newPhotoPreview" style="margin-top:10px;"></div>
-          </div>
+        </div>
+        <div style="grid-column:1/-1;margin-top:18px;padding:18px;border:2px dashed var(--gold);border-radius:4px;background:rgba(198,161,91,0.08);">
+          <label style="display:block;font-size:0.85rem;color:var(--gold-bright);font-weight:600;margin-bottom:10px;">📷 Photo de la bouteille (optionnel)</label>
+          <input id="newPhoto" type="file" accept="image/*" class="admin-input" style="width:100%;background:rgba(255,255,255,0.06);">
+          <div id="newPhotoPreview" style="margin-top:12px;"></div>
         </div>
         <button id="addWineBtn" class="btn btn-gold" style="margin-top:18px;">Ajouter au catalogue</button>
       </div>
